@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import "LinearTiltShiftFilter.h"
+#import "PGGaussianSelectiveBlurFilter.h"
 
 #import <GPUImage/GPUImage.h>
 
@@ -17,11 +18,18 @@
     CGPoint lastPoint;
     
     CGFloat lastRotation;
+    
+    NSMutableSet *_activeRecognizers;
+
 }
 
 @property (nonatomic , strong) GPUImagePicture *sourcePicture;
 @property (nonatomic , strong) GPUImageTiltShiftFilter *sepiaFilter;
 @property (nonatomic , strong) LinearTiltShiftFilter *linearTiltShiftFilter;
+@property (nonatomic , strong) PGGaussianSelectiveBlurFilter *gaussianSelectiveBlurFilter;
+
+//@property (nonatomic , strong) GPUImageGaussianSelectiveBlurFilter *gaussianSelectiveBlurFilter;
+
 
 @property (nonatomic, strong) UIPinchGestureRecognizer        *pinchGestureRecognizer;
 @property (nonatomic, strong) UIRotationGestureRecognizer     *rotateGestureRecognizer;
@@ -37,18 +45,20 @@
     [super viewDidLoad];
     
     GPUImageView *primaryView = [[GPUImageView alloc] initWithFrame:self.view.frame];
+
     self.view = primaryView;
-    UIImage *inputImage = [UIImage imageNamed:@"face"];
+    UIImage *inputImage = [UIImage imageNamed:@"face_2"];
     _sourcePicture = [[GPUImagePicture alloc] initWithImage:inputImage];
     
 
     // init LinearTiltShiftFilter
-    _linearTiltShiftFilter = [[LinearTiltShiftFilter alloc] init];
-    _linearTiltShiftFilter.blurRadiusInPixels = 40.0;
-    _linearTiltShiftFilter.focusFallOffRate = 0.1;
-    [_linearTiltShiftFilter forceProcessingAtSize:primaryView.sizeInPixels];
-    [_sourcePicture addTarget:_linearTiltShiftFilter];
-    [_linearTiltShiftFilter addTarget:primaryView];
+//    _linearTiltShiftFilter = [[LinearTiltShiftFilter alloc] init];
+//    _linearTiltShiftFilter.blurRadiusInPixels = 40.0;
+//    _linearTiltShiftFilter.focusFallOffRate = 0.1;
+//    [_linearTiltShiftFilter forceProcessingAtSize:primaryView.sizeInPixels];
+//    [_sourcePicture addTarget:_linearTiltShiftFilter];
+//    [_linearTiltShiftFilter addTarget:primaryView];
+    
     
     // init GPUImageTiltShiftFilter
 //    _sepiaFilter = [[GPUImageTiltShiftFilter alloc] init];
@@ -58,10 +68,17 @@
 //    [_sourcePicture addTarget:_sepiaFilter];
 //    [_sepiaFilter addTarget:primaryView];
 
-
+    
+    [self initGaussianSelectiveBlurFilter:primaryView];
+    
+    
     [_sourcePicture processImage];
     
     [self initGesture];
+
+    
+    _activeRecognizers = [NSMutableSet set];
+
     
     // GPUImageContext相关的数据显示
     GLint size = [GPUImageContext maximumTextureSizeForThisDevice];
@@ -70,35 +87,65 @@
     NSLog(@"%d %d %d", size, unit, vector);
 }
 
-#pragma mark - Private method
+#pragma mark - init method
+
 
 - (void) initGesture
 {
-
     _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapHandler:)];
     _tapGestureRecognizer.numberOfTapsRequired = 1;
     _tapGestureRecognizer.delegate = self;
-    
-    _pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(pinchHandler:)];
-    _pinchGestureRecognizer.delegate = self;
     
     _panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panHandler:)];
     _panGestureRecognizer.maximumNumberOfTouches = 1;
     _panGestureRecognizer.delegate = self;
     
-    _rotateGestureRecognizer = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(rotateHandler:)];
+    _pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handleGesture:)];
+    _pinchGestureRecognizer.delegate = self;
+    
+    _rotateGestureRecognizer = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(handleGesture:)];
     _rotateGestureRecognizer.delegate = self;
     
 
     
     [self.view addGestureRecognizer:_panGestureRecognizer];
     [self.view addGestureRecognizer:_tapGestureRecognizer];
-
+    
     [self.view addGestureRecognizer:_pinchGestureRecognizer];
-//    [self.view addGestureRecognizer:_rotateGestureRecognizer];
+    [self.view addGestureRecognizer:_rotateGestureRecognizer];
     
 }
 
+
+- (void) initGaussianSelectiveBlurFilter:(GPUImageView*)gPUImageView;
+{
+    _gaussianSelectiveBlurFilter = [[PGGaussianSelectiveBlurFilter alloc] init];
+    
+//    _gaussianSelectiveBlurFilter = [[GPUImageGaussianSelectiveBlurFilter alloc] init];
+    
+    _gaussianSelectiveBlurFilter.aspectRatio = 1;
+    _gaussianSelectiveBlurFilter.blurRadiusInPixels = 50;
+    _gaussianSelectiveBlurFilter.excludeCircleRadius = 0.2;
+//    _gaussianSelectiveBlurFilter.excludeBlurSize = 0.3;
+    _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(0.5, 0.5);
+    
+    
+//    self.blurRadiusInPixels = 5.0;
+//    self.excludeCircleRadius = 60.0/320.0;
+//    self.excludeBlurSize = 30.0/320.0;
+    //    self.excludeCirclePoint = CGPointMake(0.5f, 0.5f);
+
+    
+    //[_gaussianSelectiveBlurFilter forceProcessingAtSize:gPUImageView.sizeInPixels];
+    [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
+    [_sourcePicture addTarget:_gaussianSelectiveBlurFilter];
+    [_gaussianSelectiveBlurFilter addTarget:gPUImageView];
+    
+}
+
+
+
+#pragma mark - Private method
 
 
 - (void)updateFilterFocusLevel:(float) level
@@ -121,6 +168,76 @@
 
 #pragma mark - Gesture Recognizer action
 
+
+- (void)handleGesture:(UIGestureRecognizer *)recognizer
+{
+    
+    
+    switch (recognizer.state) {
+        case UIGestureRecognizerStateBegan:
+//            if (_activeRecognizers.count == 0)
+//                selectedImage.referenceTransform = selectedImage.transform;
+            [_activeRecognizers addObject:recognizer];
+            break;
+            
+        case UIGestureRecognizerStateEnded:
+//            selectedImage.referenceTransform = [self applyRecognizer:recognizer toTransform:selectedImage.referenceTransform];
+            [_activeRecognizers removeObject:recognizer];
+            break;
+            
+        case UIGestureRecognizerStateChanged: {
+            CGAffineTransform transform;
+            for (UIGestureRecognizer *recognizer in _activeRecognizers){
+                //transform = [self applyRecognizer:recognizer toTransform:transform];
+                transform = [self applyRecognizer:recognizer];
+                
+                if ([recognizer respondsToSelector:@selector(rotation)]){
+                    CGFloat angle = atan2f(transform.b, transform.a);
+                    //angle = angle * (180 / M_PI);
+                    
+                    NSLog(@"handleGesture, angle : %f", angle);
+                    
+                    //_linearTiltShiftFilter.angleRate = angle;
+                    //_gaussianSelectiveBlurFilter.rotation = angle;
+                    
+                    _gaussianSelectiveBlurFilter.isRadial = YES;
+                    _gaussianSelectiveBlurFilter.rotation = angle;
+                    
+                    [_sourcePicture processImage];
+                    
+                }else if ([recognizer respondsToSelector:@selector(scale)]) {
+                    CGFloat scaleX = transform.a;
+                    CGFloat scaleY = transform.d;
+                    
+                    
+                    NSLog(@"handleGesture, scaleX : %f, scaleY : %f", scaleX, scaleY);
+                }
+                
+
+            }
+            
+
+            break;
+        }
+            
+        default:
+            break;
+    }
+}
+
+- (CGAffineTransform)applyRecognizer:(UIGestureRecognizer *)recognizer
+{
+    if ([recognizer respondsToSelector:@selector(rotation)]){
+        return CGAffineTransformRotate(self.view.transform, [(UIRotationGestureRecognizer *)recognizer rotation]);
+    }else if ([recognizer respondsToSelector:@selector(scale)]) {
+        CGFloat scale = [(UIPinchGestureRecognizer *)recognizer scale];
+        return CGAffineTransformScale(self.view.transform, scale, scale);
+    }
+    
+    return CGAffineTransformIdentity;
+}
+
+
 - (void)panHandler:(UIPanGestureRecognizer*)gesture
 {
 
@@ -129,7 +246,11 @@
         float rate = point.y / self.view.frame.size.height;
         NSLog(@"Processing : %f",rate);
         
-        [self updateFilterFocusLevel:rate];
+        //[self updateFilterFocusLevel:rate];
+        float pointY = point.y / self.view.frame.size.height;
+        float pointX = point.x / self.view.frame.size.width;
+        _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
+        [_sourcePicture processImage];
     }
     
     
@@ -140,7 +261,11 @@
     CGPoint point = [gesture locationInView:self.view];
     float rate = point.y / self.view.frame.size.height;
     NSLog(@"Processing : %f",rate);
-    [self updateFilterFocusLevel:rate];
+    //[self updateFilterFocusLevel:rate];
+    float pointY = point.y / self.view.frame.size.height;
+    float pointX = point.x / self.view.frame.size.width;
+    _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
+    [_sourcePicture processImage];
 
 }
 
@@ -150,7 +275,19 @@
     if (gesture.state == UIGestureRecognizerStateBegan) {
         //lastScale = 1.0;
         lastPoint = [gesture locationInView:self.view];
+        
+        NSLog(@"pinchHandler lastPoint : %@",NSStringFromCGPoint(lastPoint));
 
+    } else if (gesture.state == UIGestureRecognizerStateChanged) {
+        CGPoint curPoint = [gesture locationInView:self.view];
+        
+        NSLog(@"pinchHandler curPoint : %@",NSStringFromCGPoint(curPoint));
+        
+        CGFloat angle = [self pointPairToBearingDegrees:lastPoint secondPoint:curPoint];
+        
+        NSLog(@"pinchHandler angle : %f",angle);
+        
+        [_sourcePicture processImage];
     }
     
     // Scale
@@ -159,7 +296,7 @@
 //     CGAffineTransformScale([self.layer affineTransform],
 //                            scale,
 //                            scale)];
-    NSLog(@"pinch scale : %f, gesture.scale : %f",scale, gesture.scale);
+    NSLog(@"pinchHandler scale : %f, gesture.scale : %f",scale, gesture.scale);
     
     
     lastScale = gesture.scale / 10;
@@ -170,10 +307,12 @@
 //     CGAffineTransformTranslate([self.layer affineTransform],
 //                                point.x - lastPoint.x,
 //                                point.y - lastPoint.y)];
-    lastPoint = [gesture locationInView:self.view];
+//    CGPoint curPoint = [gesture locationInView:self.view];
+//    
+//    //_linearTiltShiftFilter.focusFallOffRate = scale;
     
-    _linearTiltShiftFilter.focusFallOffRate = scale;
-    [_sourcePicture processImage];
+    
+
     
 }
 
@@ -200,35 +339,26 @@
     
     NSLog(@"rotateHandler angle : %f", angle);
     
-    _linearTiltShiftFilter.angleRate = angle;
+    //_linearTiltShiftFilter.angleRate = angle;
+    
+    _gaussianSelectiveBlurFilter.isRadial = NO;
+    _gaussianSelectiveBlurFilter.rotation = angle;
+    
     [_sourcePicture processImage];
 }
 
 
 #pragma mark - <UIGestureRecognizerDelegate>
 
-- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
+//- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
+//{
+//    return YES;
+//}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
 {
     return YES;
 }
-
-
-//- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-//    UITouch* touch = [touches anyObject];
-//    CGPoint point = [touch locationInView:self.view];
-//    float rate = point.y / self.view.frame.size.height;
-//    NSLog(@"%f",rate);
-//    
-//    NSLog(@"Processing");
-//    
-//    //[_sepiaFilter setTopFocusLevel:rate];
-//    //[_sepiaFilter setBottomFocusLevel:rate];
-//    
-//    [_linearTiltShiftFilter setTopFocusLevel:rate];
-//    [_linearTiltShiftFilter setBottomFocusLevel:rate];
-//    
-//    [_sourcePicture processImage];
-//}
 
 
 
