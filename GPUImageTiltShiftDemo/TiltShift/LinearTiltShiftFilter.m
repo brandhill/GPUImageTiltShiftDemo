@@ -8,32 +8,62 @@
 
 #import "LinearTiltShiftFilter.h"
 
-//
-//#import "GPUImageTiltShiftFilter.h"
-//#import "GPUImageFilter.h"
-//#import "GPUImageTwoInputFilter.h"
-//#import "GPUImageGaussianBlurFilter.h"
 
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
 NSString *const kCustomLinearTiltShiftFragmentShaderString = SHADER_STRING
 (
+ precision lowp float;
  varying highp vec2 textureCoordinate;
  varying highp vec2 textureCoordinate2;
  
  uniform sampler2D inputImageTexture;
  uniform sampler2D inputImageTexture2;
  
- uniform highp float topFocusLevel;
- uniform highp float bottomFocusLevel;
- uniform highp float focusFallOffRate;
- 
+ uniform lowp float topFocusLevel;       //清晰范围开始值（范围：0,1）
+ uniform lowp float bottomFocusLevel;    //清晰范围结束值（范围：0,1）
+ uniform highp float focusFallOffRate;   //模糊边界宽度（范围：0,1）
+ uniform highp float angleRate;          //角度（0.0为水平方向;90、－90为垂直方向，大于0时为顺时针方向变化，小于0为逆时针变化，值范围为：－90.0 —— 90.0）
  void main()
  {
-     lowp vec4 sharpImageColor = texture2D(inputImageTexture, textureCoordinate);
-     lowp vec4 blurredImageColor = texture2D(inputImageTexture2, textureCoordinate2);
      
-     lowp float blurIntensity = 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.y);
-     blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.y);
+     vec4 sharpImageColor = texture2D(inputImageTexture, textureCoordinate);
+     vec4 blurredImageColor = texture2D(inputImageTexture2, textureCoordinate2);
+     
+     float angleRate_temp = angleRate / 3.0;
+     float blurIntensity;
+     if (angleRate == 0.0){
+         blurIntensity= 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.y);  //degrees
+         blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.y);
+         
+     }else if (angleRate > 0.0){
+         if (angleRate < 90.0){
+             blurIntensity= 1.0 - smoothstep(topFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))) - focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                             topFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))),
+                                             textureCoordinate2.x * (radians(-abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);  //degrees
+             
+             blurIntensity += smoothstep(bottomFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))),
+                                         bottomFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))) + focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                         textureCoordinate2.x * (radians(-abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);
+         }else{
+             blurIntensity= 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.x  );  //degrees
+             blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.x);
+         }
+         
+     }else if (angleRate < 0.0){
+         if (angleRate > -90.0){
+             blurIntensity= 1.0 - smoothstep(topFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))) - focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                             topFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                             textureCoordinate2.x * (radians(abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);  //degrees
+             
+             blurIntensity += smoothstep(bottomFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                         bottomFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))) + focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                         textureCoordinate2.x * (radians(abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);
+         }else{
+             blurIntensity= 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.x  );  //degrees
+             blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.x);
+         }
+     }
+     
      
      gl_FragColor = mix(sharpImageColor, blurredImageColor, blurIntensity);
  }
@@ -41,23 +71,60 @@ NSString *const kCustomLinearTiltShiftFragmentShaderString = SHADER_STRING
 #else
 NSString *const kCustomLinearTiltShiftFragmentShaderString = SHADER_STRING
 (
+ precision lowp float;
  varying vec2 textureCoordinate;
  varying vec2 textureCoordinate2;
  
  uniform sampler2D inputImageTexture;
  uniform sampler2D inputImageTexture2;
  
- uniform float topFocusLevel;
- uniform float bottomFocusLevel;
- uniform float focusFallOffRate;
- 
+ uniform lowp float topFocusLevel;
+ uniform lowp float bottomFocusLevel;
+ uniform highp float focusFallOffRate;
+ uniform highp float angleRate;
  void main()
  {
      vec4 sharpImageColor = texture2D(inputImageTexture, textureCoordinate);
      vec4 blurredImageColor = texture2D(inputImageTexture2, textureCoordinate2);
      
-     float blurIntensity = 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.y);
-     blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.y);
+     float angleRate_temp = angleRate / 3.0;
+     
+     float blurIntensity;
+     if (angleRate == 0.0){
+         blurIntensity= 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.y);
+         blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.y);
+         
+     }else if (angleRate > 0.0){
+         if (angleRate < 90.0){
+             blurIntensity= 1.0 - smoothstep(topFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))) - focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                             topFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))),
+                                             textureCoordinate2.x * (radians(-abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);
+             
+             blurIntensity += smoothstep(bottomFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))),
+                                         bottomFocusLevel*(1.0+radians(-abs(angleRate_temp*angleRate_temp))) + focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                         textureCoordinate2.x * (radians(-abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);
+         }else{
+             blurIntensity= 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.x  );
+             blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.x);
+         }
+         
+     }else if (angleRate < 0.0){
+         
+         if (angleRate > -90.0){
+             blurIntensity= 1.0 - smoothstep(topFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))) - focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                             topFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                             textureCoordinate2.x * (radians(abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);
+             
+             blurIntensity += smoothstep(bottomFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                         bottomFocusLevel*(1.0+radians(abs(angleRate_temp*angleRate_temp))) + focusFallOffRate * (1.0+radians(abs(angleRate_temp*angleRate_temp))),
+                                         textureCoordinate2.x * (radians(abs(angleRate_temp*angleRate_temp))) + textureCoordinate2.y);
+         }else{
+             blurIntensity= 1.0 - smoothstep(topFocusLevel - focusFallOffRate, topFocusLevel, textureCoordinate2.x  );
+             blurIntensity += smoothstep(bottomFocusLevel, bottomFocusLevel + focusFallOffRate, textureCoordinate2.x);
+         }
+         
+     }
+     
      
      gl_FragColor = mix(sharpImageColor, blurredImageColor, blurIntensity);
  }
@@ -66,10 +133,8 @@ NSString *const kCustomLinearTiltShiftFragmentShaderString = SHADER_STRING
 
 @implementation LinearTiltShiftFilter
 
-@synthesize blurRadiusInPixels;
-@synthesize topFocusLevel = _topFocusLevel;
-@synthesize bottomFocusLevel = _bottomFocusLevel;
-@synthesize focusFallOffRate = _focusFallOffRate;
+
+
 
 - (id)init;
 {
@@ -78,19 +143,14 @@ NSString *const kCustomLinearTiltShiftFragmentShaderString = SHADER_STRING
         return nil;
     }
     
-    // First pass: apply a variable Gaussian blur
     blurFilter = [[GPUImageGaussianBlurFilter alloc] init];
+    [blurFilter setBlurRadiusInPixels:6.0];
     [self addFilter:blurFilter];
     
-    // Second pass: combine the blurred image with the original sharp one
     tiltShiftFilter = [[GPUImageTwoInputFilter alloc] initWithFragmentShaderFromString:kCustomLinearTiltShiftFragmentShaderString];
     [self addFilter:tiltShiftFilter];
     
-    // Texture location 0 needs to be the sharp image for both the blur and the second stage processing
     [blurFilter addTarget:tiltShiftFilter atTextureLocation:1];
-    
-    // To prevent double updating of this filter, disable updates from the sharp image side
-    //    self.inputFilterToIgnoreForUpdates = tiltShiftFilter;
     
     self.initialFilters = [NSArray arrayWithObjects:blurFilter, tiltShiftFilter, nil];
     self.terminalFilter = tiltShiftFilter;
@@ -98,7 +158,8 @@ NSString *const kCustomLinearTiltShiftFragmentShaderString = SHADER_STRING
     self.topFocusLevel = 0.4;
     self.bottomFocusLevel = 0.6;
     self.focusFallOffRate = 0.2;
-    self.blurRadiusInPixels = 7.0;
+    self.angleRate = 0.0;
+    self.blurRadiusInPixels = 6.0;
     
     return self;
 }
@@ -134,6 +195,12 @@ NSString *const kCustomLinearTiltShiftFragmentShaderString = SHADER_STRING
     [tiltShiftFilter setFloat:newValue forUniformName:@"focusFallOffRate"];
 }
 
+- (void)setAngleRate:(CGFloat)newValue;
+{
+    _angleRate = newValue;
+    [tiltShiftFilter setFloat:newValue forUniformName:@"angleRate"];
+}
+
+
+
 @end
-
-
