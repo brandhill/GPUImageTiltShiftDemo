@@ -15,7 +15,6 @@
 		AF0BEB8A1F0DD5DB0086AB6B /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF0BEB891F0DD5DB0086AB6B /* AVFoundation.framework */; };
 		AF0BEB8C1F0DD5E30086AB6B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF0BEB8B1F0DD5E30086AB6B /* QuartzCore.framework */; };
 		AF0BEB8F1F0DEA350086AB6B /* PGVignetteFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = AF0BEB8E1F0DEA350086AB6B /* PGVignetteFilter.m */; };
-		AF15A4241F0B922600AD2250 /* LinearTiltShiftFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = AF15A4231F0B922600AD2250 /* LinearTiltShiftFilter.m */; };
 		AF15B87A1F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = AF15B8791F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m */; };
 		E88DB5ED1ED85CAF003A7310 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = E88DB5EC1ED85CAF003A7310 /* main.m */; };
 		E88DB5F01ED85CAF003A7310 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E88DB5EF1ED85CAF003A7310 /* AppDelegate.m */; };
@@ -37,8 +36,6 @@
 		AF0BEB8B1F0DD5E30086AB6B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		AF0BEB8D1F0DEA350086AB6B /* PGVignetteFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PGVignetteFilter.h; path = TiltShift/PGVignetteFilter.h; sourceTree = "<group>"; };
 		AF0BEB8E1F0DEA350086AB6B /* PGVignetteFilter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PGVignetteFilter.m; path = TiltShift/PGVignetteFilter.m; sourceTree = "<group>"; };
-		AF15A4221F0B922600AD2250 /* LinearTiltShiftFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LinearTiltShiftFilter.h; path = TiltShift/LinearTiltShiftFilter.h; sourceTree = "<group>"; };
-		AF15A4231F0B922600AD2250 /* LinearTiltShiftFilter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LinearTiltShiftFilter.m; path = TiltShift/LinearTiltShiftFilter.m; sourceTree = "<group>"; };
 		AF15B8781F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PGGaussianSelectiveBlurFilter.h; path = TiltShift/PGGaussianSelectiveBlurFilter.h; sourceTree = "<group>"; };
 		AF15B8791F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PGGaussianSelectiveBlurFilter.m; path = TiltShift/PGGaussianSelectiveBlurFilter.m; sourceTree = "<group>"; };
 		E88DB5E81ED85CAF003A7310 /* GPUImageTiltShiftDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GPUImageTiltShiftDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -99,8 +96,6 @@
 				AF0BEB8E1F0DEA350086AB6B /* PGVignetteFilter.m */,
 				AF15B8781F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.h */,
 				AF15B8791F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m */,
-				AF15A4221F0B922600AD2250 /* LinearTiltShiftFilter.h */,
-				AF15A4231F0B922600AD2250 /* LinearTiltShiftFilter.m */,
 			);
 			name = TiltShift;
 			sourceTree = "<group>";
@@ -284,7 +279,6 @@
 				E88DB5F31ED85CAF003A7310 /* ViewController.m in Sources */,
 				E88DB5F01ED85CAF003A7310 /* AppDelegate.m in Sources */,
 				AF0BEB8F1F0DEA350086AB6B /* PGVignetteFilter.m in Sources */,
-				AF15A4241F0B922600AD2250 /* LinearTiltShiftFilter.m in Sources */,
 				AF15B87A1F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m in Sources */,
 				E88DB5ED1ED85CAF003A7310 /* main.m in Sources */,
 			);
