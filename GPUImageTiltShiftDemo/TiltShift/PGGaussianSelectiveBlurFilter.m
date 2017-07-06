@@ -17,7 +17,7 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
  uniform lowp float excludeBlurSize;
  uniform highp float aspectRatio;
  uniform highp float rotation;
- uniform lowp float isRadialBlur;
+ uniform lowp int isRadialBlur;
  
  void main()
  {
@@ -28,7 +28,7 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
      
      highp float distanceFromCenter;
      
-     if ( isRadialBlur == 0.0 ) {
+     if ( isRadialBlur == 1 ) {
          // for radial blur
          highp vec2 textureCoordinateToUse = vec2(textureCoordinate2.x, (textureCoordinate2.y  + 0.5 - 0.5 * aspectRatio));
          distanceFromCenter = distance(excludeCirclePoint, textureCoordinateToUse);
@@ -104,7 +104,7 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
     self.excludeCircleRadius = 60.0/320.0;
     self.excludeCirclePoint = CGPointMake(0.5f, 0.5f);
     self.excludeBlurSize = 30.0/320.0;
-    self.isRadial = false;
+    self.isRadial = YES;
     
     return self;
 }
@@ -170,7 +170,7 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
 - (void)setIsRadial:(BOOL)isRadial;
 {
     _isRadial = isRadial;
-    [selectiveFocusFilter setFloat:[NSNumber numberWithBool:_isRadial].floatValue forUniformName:@"isRadialBlur"];
+    [selectiveFocusFilter setInteger:[NSNumber numberWithBool:_isRadial].intValue forUniformName:@"isRadialBlur"];
 }
 
 @end

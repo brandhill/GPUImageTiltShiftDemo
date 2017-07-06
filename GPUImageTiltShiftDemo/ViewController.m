@@ -8,9 +8,8 @@
 
 #import "ViewController.h"
 #import "PGGaussianSelectiveBlurFilter.h"
-
+#import "PGVignetteFilter.h"
 #import <GPUImage/GPUImage.h>
-
 
 
 @interface ViewController ()<UIGestureRecognizerDelegate>
@@ -27,7 +26,7 @@
 
 @property (nonatomic , strong) GPUImagePicture *sourcePicture;
 @property (nonatomic , strong) PGGaussianSelectiveBlurFilter *gaussianSelectiveBlurFilter;
-@property (nonatomic , strong) GPUImageVignetteFilter *vignetteFilter;
+@property (nonatomic , strong) PGVignetteFilter *vignetteFilter;
 
 
 
@@ -104,8 +103,6 @@
 {
     _gaussianSelectiveBlurFilter = [[PGGaussianSelectiveBlurFilter alloc] init];
     
-//    _gaussianSelectiveBlurFilter = [[GPUImageGaussianSelectiveBlurFilter alloc] init];
-    
     _gaussianSelectiveBlurFilter.aspectRatio = 1;
     _gaussianSelectiveBlurFilter.blurRadiusInPixels = 50;
     _gaussianSelectiveBlurFilter.excludeCircleRadius = 0.2;
@@ -116,7 +113,7 @@
 //    self.blurRadiusInPixels = 5.0;
 //    self.excludeCircleRadius = 60.0/320.0;
 //    self.excludeBlurSize = 30.0/320.0;
-    //    self.excludeCirclePoint = CGPointMake(0.5f, 0.5f);
+//    self.excludeCirclePoint = CGPointMake(0.5f, 0.5f);
 
     
     //[_gaussianSelectiveBlurFilter forceProcessingAtSize:gPUImageView.sizeInPixels];
@@ -125,7 +122,7 @@
 //    [_gaussianSelectiveBlurFilter addTarget:gPUImageView];
     
     
-    _vignetteFilter = [[GPUImageVignetteFilter alloc] init];
+    _vignetteFilter = [[PGVignetteFilter alloc] init];
     _vignetteFilter.vignetteCenter = CGPointMake(0.5, 0.5);
     
     _vignetteFilter.vignetteColor = (GPUVector3){1.0,1.0,1.0};
@@ -211,25 +208,25 @@
                     
                     NSLog(@"handleGesture, angle : %f", angle);
                     
-                    //_gaussianSelectiveBlurFilter.isRadial = YES;
+                    _gaussianSelectiveBlurFilter.isRadial = NO;
                     _gaussianSelectiveBlurFilter.rotation = angle;
                     
                     [_sourcePicture processImage];
                     
                 }else if ([recognizer respondsToSelector:@selector(scale)]) {
-                    CGFloat scaleX = transform.a;
-                    CGFloat scaleY = transform.d;
-                    
-                    CGFloat scale = ABS(1.0 - (lastScale - MIN(scaleX, scaleY)));
-                    
-                    NSLog(@"handleGesture, scaleX : %f, scaleY : %f", scaleX, scaleY);
-                    NSLog(@"handleGesture, scale : %f", scale);
-                    
-                    lastBlurScale = scale;
-                    
-                    
-                    _gaussianSelectiveBlurFilter.excludeCircleRadius = lastBlurScale;
-                    [_sourcePicture processImage];
+//                    CGFloat scaleX = transform.a;
+//                    CGFloat scaleY = transform.d;
+//                    
+//                    CGFloat scale = ABS(1.0 - (lastScale - MIN(scaleX, scaleY)));
+//                    
+//                    NSLog(@"handleGesture, scaleX : %f, scaleY : %f", scaleX, scaleY);
+//                    NSLog(@"handleGesture, scale : %f", scale);
+//                    
+//                    lastBlurScale = scale;
+//                    
+//                    
+//                    _gaussianSelectiveBlurFilter.excludeCircleRadius = lastBlurScale;
+//                    [_sourcePicture processImage];
                 }
                 
 
