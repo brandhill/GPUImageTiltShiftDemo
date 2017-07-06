@@ -2,8 +2,8 @@
 //  ViewController.m
 //  GPUImageTiltShiftDemo
 //
-//  Created by 杨晴贺 on 2017/5/26.
-//  Copyright © 2017年 Silence. All rights reserved.
+//  Created by Hill on 07/04/2017.
+//  Copyright © 2017. All rights reserved.
 //
 
 #import "ViewController.h"
@@ -160,13 +160,6 @@
 
 #pragma mark - Private method
 
-
-- (void)updateFilterFocusLevel:(float) level
-{
-    [_sourcePicture processImage];
-}
-
-
 - (CGFloat) pointPairToBearingDegrees:(CGPoint)startingPoint secondPoint:(CGPoint) endingPoint
 {
     CGPoint originPoint = CGPointMake(endingPoint.x - startingPoint.x, endingPoint.y - startingPoint.y); // get origin point to origin by subtracting end from start
@@ -185,14 +178,20 @@
     
     switch (recognizer.state) {
         case UIGestureRecognizerStateBegan:
-//            if (_activeRecognizers.count == 0)
-//                selectedImage.referenceTransform = selectedImage.transform;
+
             lastBlurScale = 1.0;
             [_activeRecognizers addObject:recognizer];
+            
             break;
             
         case UIGestureRecognizerStateEnded:
-//            selectedImage.referenceTransform = [self applyRecognizer:recognizer toTransform:selectedImage.referenceTransform];
+            
+            if ([recognizer respondsToSelector:@selector(rotation)]){
+                CGAffineTransform transform = [self applyRecognizer:recognizer];
+                lastRotation = atan2f(transform.b, transform.a);
+                NSLog(@"handleGesture lastRotation : %f", lastRotation);
+            }
+            
             [_activeRecognizers removeObject:recognizer];
             break;
             
@@ -210,6 +209,9 @@
                     
                     _gaussianSelectiveBlurFilter.isRadial = NO;
                     _gaussianSelectiveBlurFilter.rotation = angle;
+                    
+                    _vignetteFilter.isRadial = NO;
+                    _vignetteFilter.rotation = angle;
                     
                     [_sourcePicture processImage];
                     
@@ -262,7 +264,6 @@
         float rate = point.y / self.view.frame.size.height;
         NSLog(@"Processing : %f",rate);
         
-        //[self updateFilterFocusLevel:rate];
         float pointY = point.y / self.view.frame.size.height;
         float pointX = point.x / self.view.frame.size.width;
         _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
@@ -279,7 +280,7 @@
     CGPoint point = [gesture locationInView:self.view];
     float rate = point.y / self.view.frame.size.height;
     NSLog(@"Processing : %f",rate);
-    //[self updateFilterFocusLevel:rate];
+    
     float pointY = point.y / self.view.frame.size.height;
     float pointX = point.x / self.view.frame.size.width;
     _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
@@ -289,81 +290,6 @@
 
 }
 
-- (void)pinchHandler:(UIPinchGestureRecognizer*)gesture
-{
-    
-    if (gesture.state == UIGestureRecognizerStateBegan) {
-        //lastScale = 1.0;
-        lastPoint = [gesture locationInView:self.view];
-        
-        NSLog(@"pinchHandler lastPoint : %@",NSStringFromCGPoint(lastPoint));
-
-    } else if (gesture.state == UIGestureRecognizerStateChanged) {
-        CGPoint curPoint = [gesture locationInView:self.view];
-        
-        NSLog(@"pinchHandler curPoint : %@",NSStringFromCGPoint(curPoint));
-        
-        CGFloat angle = [self pointPairToBearingDegrees:lastPoint secondPoint:curPoint];
-        
-        NSLog(@"pinchHandler angle : %f",angle);
-        
-        [_sourcePicture processImage];
-    }
-    
-    // Scale
-    CGFloat scale = ABS(0.5 - (lastScale - gesture.scale/10));
-//    [self.layer setAffineTransform:
-//     CGAffineTransformScale([self.layer affineTransform],
-//                            scale,
-//                            scale)];
-    NSLog(@"pinchHandler scale : %f, gesture.scale : %f",scale, gesture.scale);
-    
-    
-    lastScale = gesture.scale / 10;
-    
-    // Translate
-//    CGPoint point = [gesture locationInView:self.view];
-//    [self.layer setAffineTransform:
-//     CGAffineTransformTranslate([self.layer affineTransform],
-//                                point.x - lastPoint.x,
-//                                point.y - lastPoint.y)];
-//    CGPoint curPoint = [gesture locationInView:self.view];
-//    
-
-    
-    
-
-    
-}
-
-- (void)rotateHandler:(UIRotationGestureRecognizer*)gesture
-{
-    lastRotation = gesture.rotation;
- 
-    NSLog(@"rotateHandler lastRotation : %f",lastRotation);
- 
-    CGFloat currentRotation = [[gesture.view.layer valueForKeyPath:@"transform.rotation.z"] floatValue];
-    
-    NSLog(@"rotateHandler currentRotation : %f",currentRotation);
-    
-    CGFloat useRotation = gesture.rotation;
-    
-    while( useRotation < -M_PI )
-        useRotation += M_PI*2;
-    
-    while( useRotation > M_PI )
-        useRotation -= M_PI*2;
-    
-    
-    CGFloat angle = useRotation * (180 / M_PI);
-    
-    NSLog(@"rotateHandler angle : %f", angle);
-    
-    _gaussianSelectiveBlurFilter.isRadial = NO;
-    _gaussianSelectiveBlurFilter.rotation = angle;
-    
-    [_sourcePicture processImage];
-}
 
 
 #pragma mark - <UIGestureRecognizerDelegate>

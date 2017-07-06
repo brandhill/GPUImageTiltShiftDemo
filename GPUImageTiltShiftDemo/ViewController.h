@@ -2,8 +2,8 @@
 //  ViewController.h
 //  GPUImageTiltShiftDemo
 //
-//  Created by 杨晴贺 on 2017/5/26.
-//  Copyright © 2017年 Silence. All rights reserved.
+//  Created by Hill on 07/04/2017.
+//  Copyright © 2017. All rights reserved.
 //
 
 #import <UIKit/UIKit.h>

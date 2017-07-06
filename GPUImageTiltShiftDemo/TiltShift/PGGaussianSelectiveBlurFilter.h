@@ -1,3 +1,10 @@
+//
+//  GPUImageGaussianBlurFilter.h
+//  GPUImageTiltShiftDemo
+//
+//  Created by Hill on 07/04/2017.
+//  Copyright © 2017. All rights reserved.
+//
 
 
 #import <GPUImage/GPUImage.h>

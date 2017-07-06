@@ -3,7 +3,7 @@
 //  GPUImageTiltShiftDemo
 //
 //  Created by Hill on 07/04/2017.
-//  Copyright © 2017 Silence. All rights reserved.
+//  Copyright © 2017. All rights reserved.
 //
 
 #import <GPUImage/GPUImage.h>
@@ -12,7 +12,8 @@
  */
 @interface PGVignetteFilter : GPUImageFilter
 {
-    GLint vignetteCenterUniform, vignetteColorUniform, vignetteAlphaUniform, vignetteStartUniform, vignetteEndUniform;
+    GLint vignetteCenterUniform, vignetteColorUniform, vignetteAlphaUniform, vignetteStartUniform;
+    GLint vignetteEndUniform, isRadialUniform, rotationUniform, aspectRatioUniform;
 }
 
 // the center for the vignette in tex coords (defaults to 0.5, 0.5)
@@ -29,5 +30,11 @@
 
 // The normalized distance from the center where the vignette effect ends. Default of 0.75.
 @property (nonatomic, readwrite) CGFloat vignetteEnd;
+
+@property (readwrite, nonatomic) BOOL isRadial;
+
+@property (readwrite, nonatomic) CGFloat rotation;
+
+@property (readwrite, nonatomic) CGFloat aspectRatio;
 
 @end

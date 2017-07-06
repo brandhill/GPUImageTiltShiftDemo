@@ -1,3 +1,11 @@
+//
+//  PGVignetteFilter.m
+//  GPUImageTiltShiftDemo
+//
+//  Created by Hill on 07/04/2017.
+//  Copyright © 2017. All rights reserved.
+//
+
 #import "PGVignetteFilter.h"
 
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
@@ -13,12 +21,30 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
  uniform highp float vignetteStart;
  uniform highp float vignetteEnd;
  
+ uniform highp float aspectRatio;
+ uniform highp float rotation;
+ uniform lowp int isRadial;
+ 
  void main()
  {
      lowp vec4 sourceImageColor = texture2D(inputImageTexture, textureCoordinate);
-     lowp float d = distance(textureCoordinate, vec2(vignetteCenter.x, vignetteCenter.y));
-     lowp float percent = smoothstep(vignetteStart, vignetteEnd, d);
-     gl_FragColor = vec4(mix(sourceImageColor.rgb, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+     
+     
+     if ( isRadial == 1 ) {
+         // for radial blur
+         lowp float d = distance(textureCoordinate, vec2(vignetteCenter.x, vignetteCenter.y));
+         lowp float percent = smoothstep(vignetteStart, vignetteEnd, d);
+         
+         gl_FragColor = vec4(mix(sourceImageColor.rgb, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+     }else{
+         // for linear blur
+         
+         lowp float d = abs((textureCoordinate.x - vignetteCenter.x)*aspectRatio*cos(rotation) + (textureCoordinate.y-vignetteCenter.y)*sin(rotation));
+         lowp float percent = smoothstep(vignetteStart, vignetteEnd, d);
+         
+         gl_FragColor = vec4(mix(sourceImageColor.rgb, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+         
+     }
  }
 );
 #else
@@ -58,7 +84,7 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
 {
     if (!(self = [super initWithFragmentShaderFromString:kPGVignetteFragmentShaderString]))
     {
-		return nil;
+        return nil;
     }
     
     vignetteCenterUniform = [filterProgram uniformIndex:@"vignetteCenter"];
@@ -66,12 +92,18 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
     vignetteAlphaUniform = [filterProgram uniformIndex:@"vignetteAlpha"];
     vignetteStartUniform = [filterProgram uniformIndex:@"vignetteStart"];
     vignetteEndUniform = [filterProgram uniformIndex:@"vignetteEnd"];
+    isRadialUniform = [filterProgram uniformIndex:@"isRadial"];
+    rotationUniform = [filterProgram uniformIndex:@"rotation"];
+    aspectRatioUniform = [filterProgram uniformIndex:@"aspectRatio"];
     
     self.vignetteCenter = (CGPoint){ 0.5f, 0.5f };
     self.vignetteColor = (GPUVector3){ 0.0f, 0.0f, 0.0f };
     self.vignetteAlpha = 1.0;
     self.vignetteStart = 0.3;
     self.vignetteEnd = 0.75;
+    self.isRadial = YES;
+    self.rotation = 0.0;
+    self.aspectRatio = 1;
     
     return self;
 }
@@ -111,8 +143,27 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
 - (void)setVignetteEnd:(CGFloat)newValue;
 {
     _vignetteEnd = newValue;
-
+    
     [self setFloat:_vignetteEnd forUniform:vignetteEndUniform program:filterProgram];
+}
+
+- (void)setIsRadial:(BOOL)isRadial;
+{
+    _isRadial = isRadial;
+    [self setInteger:[NSNumber numberWithBool:_isRadial].intValue forUniform:isRadialUniform program:filterProgram];
+}
+
+- (void)setRotation:(CGFloat)newValue;
+{
+    _rotation = newValue;
+    [self setFloat:_rotation forUniform:rotationUniform program:filterProgram];
+}
+
+- (void)setAspectRatio:(CGFloat)newValue;
+{
+    _aspectRatio = newValue;
+    [self setFloat:_aspectRatio forUniform:aspectRatioUniform program:filterProgram];
+    
 }
 
 @end
