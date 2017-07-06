@@ -11,6 +11,8 @@
 
 #import <GPUImage/GPUImage.h>
 
+
+
 @interface ViewController ()<UIGestureRecognizerDelegate>
 {
     CGFloat lastScale;
@@ -127,8 +129,10 @@
     _vignetteFilter.vignetteCenter = CGPointMake(0.5, 0.5);
     
     _vignetteFilter.vignetteColor = (GPUVector3){1.0,1.0,1.0};
-    _vignetteFilter.vignetteStart = 0.3;
-    _vignetteFilter.vignetteEnd = 0.4;
+    _vignetteFilter.vignetteAlpha = 0.4;
+    _vignetteFilter.vignetteStart = 0.2;
+    _vignetteFilter.vignetteEnd = 0.25;
+    
     [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
 
     //[_vignetteFilter useNextFrameForImageCapture];
@@ -136,7 +140,7 @@
     //[_gaussianSelectiveBlurFilter addTarget:_vignetteFilter];
     //[_vignetteFilter addTarget:gPUImageView];
 
-    
+    [self addVignetteFilter];
     
 }
 

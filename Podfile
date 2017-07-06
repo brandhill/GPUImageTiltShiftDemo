@@ -3,6 +3,4 @@ platform :ios, '8.0'
 
 target 'GPUImageTiltShiftDemo' do
 
-	pod 'GPUImage'
-
 end

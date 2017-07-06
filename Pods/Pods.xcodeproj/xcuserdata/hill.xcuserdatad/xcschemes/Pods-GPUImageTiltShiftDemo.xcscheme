@@ -14,7 +14,7 @@
             buildForArchiving = "YES">
             <BuildableReference
                BuildableIdentifier = 'primary'
-               BlueprintIdentifier = '6652141673575C80862DECCC6D9378B9'
+               BlueprintIdentifier = '658FC05791DE7F7D16AC2EEF5EA9D194'
                BlueprintName = 'Pods-GPUImageTiltShiftDemo'
                ReferencedContainer = 'container:Pods.xcodeproj'
                BuildableName = 'libPods-GPUImageTiltShiftDemo.a'>
