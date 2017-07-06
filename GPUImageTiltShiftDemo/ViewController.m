@@ -7,7 +7,6 @@
 //
 
 #import "ViewController.h"
-#import "LinearTiltShiftFilter.h"
 #import "PGGaussianSelectiveBlurFilter.h"
 
 #import <GPUImage/GPUImage.h>
@@ -20,15 +19,14 @@
     CGFloat lastRotation;
     
     NSMutableSet *_activeRecognizers;
-
+    CGFloat lastBlurScale;
+    GPUImageView *primaryView;
 }
 
 @property (nonatomic , strong) GPUImagePicture *sourcePicture;
-@property (nonatomic , strong) GPUImageTiltShiftFilter *sepiaFilter;
-@property (nonatomic , strong) LinearTiltShiftFilter *linearTiltShiftFilter;
 @property (nonatomic , strong) PGGaussianSelectiveBlurFilter *gaussianSelectiveBlurFilter;
+@property (nonatomic , strong) GPUImageVignetteFilter *vignetteFilter;
 
-//@property (nonatomic , strong) GPUImageGaussianSelectiveBlurFilter *gaussianSelectiveBlurFilter;
 
 
 @property (nonatomic, strong) UIPinchGestureRecognizer        *pinchGestureRecognizer;
@@ -44,29 +42,11 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    GPUImageView *primaryView = [[GPUImageView alloc] initWithFrame:self.view.frame];
+    primaryView = [[GPUImageView alloc] initWithFrame:self.view.frame];
 
     self.view = primaryView;
     UIImage *inputImage = [UIImage imageNamed:@"face_2"];
     _sourcePicture = [[GPUImagePicture alloc] initWithImage:inputImage];
-    
-
-    // init LinearTiltShiftFilter
-//    _linearTiltShiftFilter = [[LinearTiltShiftFilter alloc] init];
-//    _linearTiltShiftFilter.blurRadiusInPixels = 40.0;
-//    _linearTiltShiftFilter.focusFallOffRate = 0.1;
-//    [_linearTiltShiftFilter forceProcessingAtSize:primaryView.sizeInPixels];
-//    [_sourcePicture addTarget:_linearTiltShiftFilter];
-//    [_linearTiltShiftFilter addTarget:primaryView];
-    
-    
-    // init GPUImageTiltShiftFilter
-//    _sepiaFilter = [[GPUImageTiltShiftFilter alloc] init];
-//    _sepiaFilter.blurRadiusInPixels = 40.0;
-//    _sepiaFilter.focusFallOffRate = 0.1;
-//    [_sepiaFilter forceProcessingAtSize:primaryView.sizeInPixels];
-//    [_sourcePicture addTarget:_sepiaFilter];
-//    [_sepiaFilter addTarget:primaryView];
 
     
     [self initGaussianSelectiveBlurFilter:primaryView];
@@ -76,7 +56,8 @@
     
     [self initGesture];
 
-    
+
+    lastBlurScale = 1.0;
     _activeRecognizers = [NSMutableSet set];
 
     
@@ -139,10 +120,41 @@
     //[_gaussianSelectiveBlurFilter forceProcessingAtSize:gPUImageView.sizeInPixels];
     [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
     [_sourcePicture addTarget:_gaussianSelectiveBlurFilter];
-    [_gaussianSelectiveBlurFilter addTarget:gPUImageView];
+//    [_gaussianSelectiveBlurFilter addTarget:gPUImageView];
+    
+    
+    _vignetteFilter = [[GPUImageVignetteFilter alloc] init];
+    _vignetteFilter.vignetteCenter = CGPointMake(0.5, 0.5);
+    
+    _vignetteFilter.vignetteColor = (GPUVector3){1.0,1.0,1.0};
+    _vignetteFilter.vignetteStart = 0.3;
+    _vignetteFilter.vignetteEnd = 0.4;
+    [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
+
+    //[_vignetteFilter useNextFrameForImageCapture];
+    
+    //[_gaussianSelectiveBlurFilter addTarget:_vignetteFilter];
+    //[_vignetteFilter addTarget:gPUImageView];
+
+    
     
 }
 
+- (void) addVignetteFilter
+{
+    [_gaussianSelectiveBlurFilter removeTarget:primaryView];
+    
+    [_gaussianSelectiveBlurFilter addTarget:_vignetteFilter];
+    [_vignetteFilter addTarget:primaryView];
+}
+
+- (void) removeVignetteFilter
+{
+    [_vignetteFilter removeTarget:primaryView];
+    
+    [_gaussianSelectiveBlurFilter removeTarget:_vignetteFilter];
+    [_gaussianSelectiveBlurFilter addTarget:primaryView];
+}
 
 
 #pragma mark - Private method
@@ -150,9 +162,6 @@
 
 - (void)updateFilterFocusLevel:(float) level
 {
-    [_linearTiltShiftFilter setTopFocusLevel:level];
-    [_linearTiltShiftFilter setBottomFocusLevel:level];
-    
     [_sourcePicture processImage];
 }
 
@@ -177,6 +186,7 @@
         case UIGestureRecognizerStateBegan:
 //            if (_activeRecognizers.count == 0)
 //                selectedImage.referenceTransform = selectedImage.transform;
+            lastBlurScale = 1.0;
             [_activeRecognizers addObject:recognizer];
             break;
             
@@ -197,10 +207,7 @@
                     
                     NSLog(@"handleGesture, angle : %f", angle);
                     
-                    //_linearTiltShiftFilter.angleRate = angle;
-                    //_gaussianSelectiveBlurFilter.rotation = angle;
-                    
-                    _gaussianSelectiveBlurFilter.isRadial = YES;
+                    //_gaussianSelectiveBlurFilter.isRadial = YES;
                     _gaussianSelectiveBlurFilter.rotation = angle;
                     
                     [_sourcePicture processImage];
@@ -209,8 +216,16 @@
                     CGFloat scaleX = transform.a;
                     CGFloat scaleY = transform.d;
                     
+                    CGFloat scale = ABS(1.0 - (lastScale - MIN(scaleX, scaleY)));
                     
                     NSLog(@"handleGesture, scaleX : %f, scaleY : %f", scaleX, scaleY);
+                    NSLog(@"handleGesture, scale : %f", scale);
+                    
+                    lastBlurScale = scale;
+                    
+                    
+                    _gaussianSelectiveBlurFilter.excludeCircleRadius = lastBlurScale;
+                    [_sourcePicture processImage];
                 }
                 
 
@@ -250,6 +265,8 @@
         float pointY = point.y / self.view.frame.size.height;
         float pointX = point.x / self.view.frame.size.width;
         _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
+        _vignetteFilter.vignetteCenter = CGPointMake(pointX, pointY);
+        
         [_sourcePicture processImage];
     }
     
@@ -265,6 +282,8 @@
     float pointY = point.y / self.view.frame.size.height;
     float pointX = point.x / self.view.frame.size.width;
     _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
+    _vignetteFilter.vignetteCenter = CGPointMake(pointX, pointY);
+    
     [_sourcePicture processImage];
 
 }
@@ -309,7 +328,7 @@
 //                                point.y - lastPoint.y)];
 //    CGPoint curPoint = [gesture locationInView:self.view];
 //    
-//    //_linearTiltShiftFilter.focusFallOffRate = scale;
+
     
     
 
@@ -338,8 +357,6 @@
     CGFloat angle = useRotation * (180 / M_PI);
     
     NSLog(@"rotateHandler angle : %f", angle);
-    
-    //_linearTiltShiftFilter.angleRate = angle;
     
     _gaussianSelectiveBlurFilter.isRadial = NO;
     _gaussianSelectiveBlurFilter.rotation = angle;
