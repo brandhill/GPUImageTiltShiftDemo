@@ -12,6 +12,12 @@
 #import <GPUImage/GPUImage.h>
 
 
+const CGFloat kInitScaleValue = 0.2;
+const CGFloat kVignetteOffset = 0.2;
+const CGFloat kVignetteAlphaValue = 0.85;
+const CGFloat kMaxScale = 10.0;
+const CGFloat kMinScale = 0.0;
+
 @interface ViewController ()<UIGestureRecognizerDelegate>
 {
     CGFloat lastScale;
@@ -20,21 +26,25 @@
     CGFloat lastRotation;
     
     NSMutableSet *_activeRecognizers;
-    CGFloat lastBlurScale;
+
     GPUImageView *primaryView;
+    
+    
 }
 
 @property (nonatomic , strong) GPUImagePicture *sourcePicture;
 @property (nonatomic , strong) PGGaussianSelectiveBlurFilter *gaussianSelectiveBlurFilter;
 @property (nonatomic , strong) PGVignetteFilter *vignetteFilter;
 
-
-
 @property (nonatomic, strong) UIPinchGestureRecognizer        *pinchGestureRecognizer;
 @property (nonatomic, strong) UIRotationGestureRecognizer     *rotateGestureRecognizer;
 @property (nonatomic, strong) UIPanGestureRecognizer          *panGestureRecognizer;
 @property (nonatomic, strong) UITapGestureRecognizer          *tapGestureRecognizer;
+@property (nonatomic) NSTimeInterval startFadeOutReferenceTime;
 
+@property (nonatomic, strong) CADisplayLink *vignetteFadeOutTimer;
+
+@property (nonatomic, assign) BOOL isVignetteFadeOutTimerRunning;
 
 @end
 
@@ -48,19 +58,17 @@
     self.view = primaryView;
     UIImage *inputImage = [UIImage imageNamed:@"face_2"];
     _sourcePicture = [[GPUImagePicture alloc] initWithImage:inputImage];
+    
 
-    
-    [self initGaussianSelectiveBlurFilter:primaryView];
-    
+    lastScale = kInitScaleValue;
+    [self initFilters:primaryView];
+    [self createVignetteFadeOutTimer];
     
     [_sourcePicture processImage];
     
     [self initGesture];
-
-
-    lastBlurScale = 1.0;
+    
     _activeRecognizers = [NSMutableSet set];
-
     
     // GPUImageContext相关的数据显示
     GLint size = [GPUImageContext maximumTextureSizeForThisDevice];
@@ -99,46 +107,31 @@
 }
 
 
-- (void) initGaussianSelectiveBlurFilter:(GPUImageView*)gPUImageView;
+- (void) initFilters:(GPUImageView*)gPUImageView;
 {
     _gaussianSelectiveBlurFilter = [[PGGaussianSelectiveBlurFilter alloc] init];
     
+    CGSize inputSize = CGSizeMake(MIN(gPUImageView.sizeInPixels.height, gPUImageView.sizeInPixels.width), MIN(gPUImageView.sizeInPixels.height, gPUImageView.sizeInPixels.width));
+    
     _gaussianSelectiveBlurFilter.aspectRatio = 1;
-    _gaussianSelectiveBlurFilter.blurRadiusInPixels = 50;
-    _gaussianSelectiveBlurFilter.excludeCircleRadius = 0.2;
-//    _gaussianSelectiveBlurFilter.excludeBlurSize = 0.3;
+    _gaussianSelectiveBlurFilter.blurRadiusInPixels = 4.5;
+    _gaussianSelectiveBlurFilter.excludeCircleRadius = kInitScaleValue;
     _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(0.5, 0.5);
-    
-    
-//    self.blurRadiusInPixels = 5.0;
-//    self.excludeCircleRadius = 60.0/320.0;
-//    self.excludeBlurSize = 30.0/320.0;
-//    self.excludeCirclePoint = CGPointMake(0.5f, 0.5f);
-
-    
-    //[_gaussianSelectiveBlurFilter forceProcessingAtSize:gPUImageView.sizeInPixels];
-    [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
+    [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:inputSize];
     [_sourcePicture addTarget:_gaussianSelectiveBlurFilter];
-//    [_gaussianSelectiveBlurFilter addTarget:gPUImageView];
+
     
     
     _vignetteFilter = [[PGVignetteFilter alloc] init];
     _vignetteFilter.vignetteCenter = CGPointMake(0.5, 0.5);
-    
     _vignetteFilter.vignetteColor = (GPUVector3){1.0,1.0,1.0};
-    _vignetteFilter.vignetteAlpha = 0.4;
-    _vignetteFilter.vignetteStart = 0.2;
-    _vignetteFilter.vignetteEnd = 0.25;
-    
-    [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
+    _vignetteFilter.vignetteAlpha = 0.0f;
+    _vignetteFilter.vignetteStart = 0.1;
+    _vignetteFilter.vignetteEnd = 0.35;
+    [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:inputSize];
 
-    //[_vignetteFilter useNextFrameForImageCapture];
-    
-    //[_gaussianSelectiveBlurFilter addTarget:_vignetteFilter];
-    //[_vignetteFilter addTarget:gPUImageView];
 
     [self addVignetteFilter];
-    
 }
 
 - (void) addVignetteFilter
@@ -178,13 +171,46 @@
     
     switch (recognizer.state) {
         case UIGestureRecognizerStateBegan:
-
-            lastBlurScale = 1.0;
+            
+            if([self isVignetteFadeOutTimerRunning]){
+                [self stopVignetteFadeOutTimer];
+            }
+            
+            _vignetteFilter.vignetteAlpha = kVignetteAlphaValue;
+            [_sourcePicture processImage];
+            
+            
             [_activeRecognizers addObject:recognizer];
+            
+            
+            if ([recognizer respondsToSelector:@selector(scale)]) {
+                CGAffineTransform transform = [self applyRecognizer:recognizer];
+                CGFloat scaleX = transform.a;
+                CGFloat scaleY = transform.d;
+                CGFloat minScale = MIN(scaleX, scaleY);
+                
+                CGFloat currentScale = [[[recognizer view].layer valueForKeyPath:@"transform.scale"] floatValue];
+                
+                // Constants to adjust the max/min values of zoom
+
+                
+                CGFloat newScale = 1 -  (lastScale - minScale);
+                newScale = MIN(newScale, kMaxScale / currentScale);
+                newScale = MAX(newScale, kMinScale / currentScale);
+                
+                lastScale = newScale/kMaxScale;  // Store the previous scale factor for the next pinch gesture call
+
+            }
+            
             
             break;
             
         case UIGestureRecognizerStateEnded:
+            
+            if(![self isVignetteFadeOutTimerRunning]){
+                [self startVignetteFadeOutTimer];
+            }
+            
             
             if ([recognizer respondsToSelector:@selector(rotation)]){
                 CGAffineTransform transform = [self applyRecognizer:recognizer];
@@ -204,7 +230,7 @@
                 if ([recognizer respondsToSelector:@selector(rotation)]){
                     CGFloat angle = atan2f(transform.b, transform.a);
                     //angle = angle * (180 / M_PI);
-                    
+                    angle += lastRotation;
                     NSLog(@"handleGesture, angle : %f", angle);
                     
                     _gaussianSelectiveBlurFilter.isRadial = NO;
@@ -216,24 +242,31 @@
                     [_sourcePicture processImage];
                     
                 }else if ([recognizer respondsToSelector:@selector(scale)]) {
-//                    CGFloat scaleX = transform.a;
-//                    CGFloat scaleY = transform.d;
-//                    
-//                    CGFloat scale = ABS(1.0 - (lastScale - MIN(scaleX, scaleY)));
-//                    
-//                    NSLog(@"handleGesture, scaleX : %f, scaleY : %f", scaleX, scaleY);
-//                    NSLog(@"handleGesture, scale : %f", scale);
-//                    
-//                    lastBlurScale = scale;
-//                    
-//                    
-//                    _gaussianSelectiveBlurFilter.excludeCircleRadius = lastBlurScale;
-//                    [_sourcePicture processImage];
-                }
-                
+                    
+                    CGFloat scaleX = transform.a;
+                    CGFloat scaleY = transform.d;
+                    CGFloat minScale = MIN(scaleX, scaleY);
+                    
+                    CGFloat currentScale = [[[recognizer view].layer valueForKeyPath:@"transform.scale"] floatValue];
+                    
+                    // Constants to adjust the max/min values of zoom
+                    
+                    CGFloat newScale = 1 -  (lastScale - minScale);
+                    newScale = MIN(newScale, kMaxScale / currentScale);
+                    newScale = MAX(newScale, kMinScale / currentScale);
+                   
+                    lastScale = newScale/kMaxScale;  // Store the previous scale factor for the next pinch gesture call
 
+                    
+                    NSLog(@"handleGesture, scale : %f", lastScale);
+                    _gaussianSelectiveBlurFilter.excludeCircleRadius = lastScale;
+                    
+                    _vignetteFilter.vignetteStart = lastScale;
+                    _vignetteFilter.vignetteEnd = lastScale + kVignetteOffset;
+                    
+                    [_sourcePicture processImage];
+                }
             }
-            
 
             break;
         }
@@ -259,13 +292,29 @@
 - (void)panHandler:(UIPanGestureRecognizer*)gesture
 {
 
-    if (gesture.state == UIGestureRecognizerStateChanged) {
-        CGPoint point = [gesture locationInView:self.view];
-        float rate = point.y / self.view.frame.size.height;
-        NSLog(@"Processing : %f",rate);
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+
+        if([self isVignetteFadeOutTimerRunning]){
+            [self stopVignetteFadeOutTimer];
+        }
         
-        float pointY = point.y / self.view.frame.size.height;
+        _vignetteFilter.vignetteAlpha = kVignetteAlphaValue;
+        [_sourcePicture processImage];
+        
+    }else if (gesture.state == UIGestureRecognizerStateEnded) {
+
+        if(![self isVignetteFadeOutTimerRunning]){
+            [self startVignetteFadeOutTimer];
+        }
+
+    }else if (gesture.state == UIGestureRecognizerStateChanged) {
+        CGPoint point = [gesture locationInView:self.view];
+        
         float pointX = point.x / self.view.frame.size.width;
+        float pointY = point.y / self.view.frame.size.height;
+        
+        NSLog(@"panHandler pointX : %f, pointY : %f",pointX, pointY);
+        
         _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
         _vignetteFilter.vignetteCenter = CGPointMake(pointX, pointY);
         
@@ -277,12 +326,28 @@
 
 - (void)tapHandler:(UITapGestureRecognizer*)gesture
 {
-    CGPoint point = [gesture locationInView:self.view];
-    float rate = point.y / self.view.frame.size.height;
-    NSLog(@"Processing : %f",rate);
     
-    float pointY = point.y / self.view.frame.size.height;
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        
+        if([self isVignetteFadeOutTimerRunning]){
+            [self stopVignetteFadeOutTimer];
+        }
+        
+        _vignetteFilter.vignetteAlpha = kVignetteAlphaValue;
+        [_sourcePicture processImage];
+        
+    }else if (gesture.state == UIGestureRecognizerStateEnded) {
+        if(![self isVignetteFadeOutTimerRunning]){
+            [self startVignetteFadeOutTimer];
+        }
+    }
+    
+    CGPoint point = [gesture locationInView:self.view];
     float pointX = point.x / self.view.frame.size.width;
+    float pointY = point.y / self.view.frame.size.height;
+    
+    NSLog(@"tapHandler pointX : %f, pointY : %f",pointX, pointY);
+    
     _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(pointX, pointY);
     _vignetteFilter.vignetteCenter = CGPointMake(pointX, pointY);
     
@@ -305,5 +370,70 @@
 }
 
 
+
+
+#pragma mark - Selfie Timer (CADisplayLink)
+
+- (void)createVignetteFadeOutTimer
+{
+    _vignetteFadeOutTimer = [CADisplayLink displayLinkWithTarget:self selector:@selector(processVignetteFadeOutTimerAnimation)];
+    [_vignetteFadeOutTimer setFrameInterval:1];
+    [_vignetteFadeOutTimer addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+    
+    // start in stopping state
+    _vignetteFadeOutTimer.paused = YES;
+
+}
+- (void)startVignetteFadeOutTimer
+{
+    if(_vignetteFadeOutTimer){
+        self.startFadeOutReferenceTime = [NSDate timeIntervalSinceReferenceDate];;
+        _vignetteFadeOutTimer.paused = NO;
+        
+        _isVignetteFadeOutTimerRunning = YES;
+    }
+}
+
+- (void)stopVignetteFadeOutTimer
+{
+    if(_vignetteFadeOutTimer){
+        _vignetteFadeOutTimer.paused = YES;
+        
+        _isVignetteFadeOutTimerRunning = NO;
+    }
+}
+
+
+
+
+- (void)releaseVignetteFadeOutTimer
+{
+    if(_vignetteFadeOutTimer){
+        [_vignetteFadeOutTimer invalidate];
+        _vignetteFadeOutTimer = nil;
+    }
+}
+
+- (void) processVignetteFadeOutTimerAnimation
+{
+    
+    if(!_isVignetteFadeOutTimerRunning){
+        return;
+    }
+    
+    NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+    
+    CGFloat timeDiff = (now - self.startFadeOutReferenceTime);
+    CGFloat timerValue = 1.0;
+  
+    
+    if (timeDiff/timerValue <= 1){
+        _vignetteFilter.vignetteAlpha = kVignetteAlphaValue * (1 - timeDiff/timerValue);
+        [_sourcePicture processImage];
+    }else{
+        [self stopVignetteFadeOutTimer];
+    }
+    
+}
 
 @end
