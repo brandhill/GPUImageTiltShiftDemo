@@ -30,8 +30,6 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
      lowp vec4 sharpImageColor = texture2D(inputImageTexture, textureCoordinate);
      lowp vec4 blurredImageColor = texture2D(inputImageTexture2, textureCoordinate2);
      
-     highp vec2 textureCoordinateToUse = vec2(textureCoordinate2.x, (textureCoordinate2.y * aspectRatio + 0.5 - 0.5 * aspectRatio));
-     
      highp float distanceFromCenter;
      
      if ( isRadialBlur == 1 ) {
