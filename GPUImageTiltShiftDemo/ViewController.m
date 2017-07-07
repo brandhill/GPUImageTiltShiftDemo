@@ -172,8 +172,7 @@ const CGFloat kMinVignetteEndOffset = 0.03;
             
             
             if ([recognizer respondsToSelector:@selector(rotation)]){
-                CGAffineTransform transform = [self applyRecognizer:recognizer];
-                lastRotation = atan2f(transform.b, transform.a);
+                lastRotation = _gaussianSelectiveBlurFilter.rotation;
                 NSLog(@"handleGesture lastRotation : %f", lastRotation);
             } else if([recognizer respondsToSelector:@selector(scale)]) {
                 // Store the previous scale factor for the next pinch gesture call
