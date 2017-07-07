@@ -13,16 +13,27 @@
 #include "easing.h"
 
 const CGFloat kInitScaleValue = 0.2;
+const CGFloat kInitVignetteStartOffset = 0.1;
+const CGFloat kInitVignetteEndOffset = 0.15;
 const CGFloat kVignetteStartOffset = 0.1;
 const CGFloat kVignetteEndOffset = 0.15;
 const CGFloat kVignetteAlphaValue = 0.85;
-const CGFloat kMaxScale = 10.0;
-const CGFloat kMinScale = 0.0;
+const CGFloat kMaxScale = 0.425;
+const CGFloat kMinScale = 0.05;
+const CGFloat kMaxVignetteStartOffset = 0.25;
+const CGFloat kMinVignetteStartOffset = 0.025;
+const CGFloat kMaxVignetteEndOffset = 0.25;
+const CGFloat kMinVignetteEndOffset = 0.03;
 
 @interface ViewController ()<UIGestureRecognizerDelegate>
 {
     CGFloat lastScale;
+    CGFloat currScale;
     CGPoint lastPoint;
+    CGFloat lastVignetteStartOffset;
+    CGFloat currVignetteStartOffset;
+    CGFloat lastVignetteEndOffset;
+    CGFloat currVignetteEndOffset;
     
     CGFloat lastRotation;
     
@@ -60,6 +71,8 @@ const CGFloat kMinScale = 0.0;
     
 
     lastScale = kInitScaleValue;
+    lastVignetteStartOffset = kInitVignetteStartOffset;
+    lastVignetteEndOffset = kInitVignetteEndOffset;
     [self initFilters:primaryView];
     [self createVignetteFadeOutTimer];
     
@@ -149,24 +162,6 @@ const CGFloat kMinScale = 0.0;
             
             [_activeRecognizers addObject:recognizer];
             
-            
-            if ([recognizer respondsToSelector:@selector(scale)]) {
-                CGAffineTransform transform = [self applyRecognizer:recognizer];
-                CGFloat scaleX = transform.a;
-                CGFloat scaleY = transform.d;
-                CGFloat minScale = MIN(scaleX, scaleY);
-                
-                CGFloat currentScale = [[[recognizer view].layer valueForKeyPath:@"transform.scale"] floatValue];
-                
-                // Constants to adjust the max/min values of zoom
-                CGFloat newScale = 1 -  (lastScale - minScale);
-                newScale = MIN(newScale, kMaxScale / currentScale);
-                newScale = MAX(newScale, kMinScale / currentScale);
-                
-                lastScale = newScale/kMaxScale;  // Store the previous scale factor for the next pinch gesture call
-            }
-            
-            
             break;
             
         case UIGestureRecognizerStateEnded:
@@ -180,6 +175,11 @@ const CGFloat kMinScale = 0.0;
                 CGAffineTransform transform = [self applyRecognizer:recognizer];
                 lastRotation = atan2f(transform.b, transform.a);
                 NSLog(@"handleGesture lastRotation : %f", lastRotation);
+            } else if([recognizer respondsToSelector:@selector(scale)]) {
+                // Store the previous scale factor for the next pinch gesture call
+                lastScale = currScale;
+                lastVignetteStartOffset = currVignetteStartOffset;
+                lastVignetteEndOffset = currVignetteEndOffset;
             }
             
             [_activeRecognizers removeObject:recognizer];
@@ -214,19 +214,20 @@ const CGFloat kMinScale = 0.0;
                     CGFloat currentScale = [[[recognizer view].layer valueForKeyPath:@"transform.scale"] floatValue];
                     
                     // Constants to adjust the max/min values of zoom
-                    
-                    CGFloat newScale = 1 -  (lastScale - minScale);
+                    CGFloat newScale = minScale * lastScale;
                     newScale = MIN(newScale, kMaxScale / currentScale);
                     newScale = MAX(newScale, kMinScale / currentScale);
                    
-                    lastScale = newScale/kMaxScale;  // Store the previous scale factor for the next pinch gesture call
+                    currScale = newScale;
 
                     
-                    NSLog(@"handleGesture, scale : %f", lastScale);
-                    _gaussianSelectiveBlurFilter.excludeCircleRadius = lastScale;
+                    NSLog(@"handleGesture, scale : %f", currScale);
+                    _gaussianSelectiveBlurFilter.excludeCircleRadius = currScale;
                     
-                    CGFloat vignetteStart = (lastScale - kVignetteStartOffset) < 0 ? 0 : (lastScale - kVignetteStartOffset);
-                    CGFloat vignetteEnd = (lastScale + kVignetteEndOffset) > 1 ? 1 : (lastScale + kVignetteEndOffset) ;
+                    currVignetteStartOffset = MAX(kMinVignetteStartOffset, MIN(kMaxVignetteStartOffset, minScale * lastVignetteStartOffset));
+                    currVignetteEndOffset = MAX(kMinVignetteEndOffset, MIN(kMaxVignetteEndOffset, minScale * lastVignetteEndOffset));
+                    CGFloat vignetteStart = currScale - currVignetteStartOffset;
+                    CGFloat vignetteEnd = currScale + currVignetteEndOffset;
                     _vignetteFilter.vignetteStart = vignetteStart;
                     _vignetteFilter.vignetteEnd = vignetteEnd;
                     
