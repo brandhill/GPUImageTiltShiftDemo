@@ -16,6 +16,8 @@
 		AF0BEB8C1F0DD5E30086AB6B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF0BEB8B1F0DD5E30086AB6B /* QuartzCore.framework */; };
 		AF0BEB8F1F0DEA350086AB6B /* PGVignetteFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = AF0BEB8E1F0DEA350086AB6B /* PGVignetteFilter.m */; };
 		AF15B87A1F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = AF15B8791F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m */; };
+		AFCBA5411F0FA4BB00B8004D /* CAKeyframeAnimation+AHEasing.m in Sources */ = {isa = PBXBuildFile; fileRef = AFCBA53E1F0FA4BB00B8004D /* CAKeyframeAnimation+AHEasing.m */; };
+		AFCBA5421F0FA4BB00B8004D /* easing.c in Sources */ = {isa = PBXBuildFile; fileRef = AFCBA53F1F0FA4BB00B8004D /* easing.c */; };
 		E88DB5ED1ED85CAF003A7310 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = E88DB5EC1ED85CAF003A7310 /* main.m */; };
 		E88DB5F01ED85CAF003A7310 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E88DB5EF1ED85CAF003A7310 /* AppDelegate.m */; };
 		E88DB5F31ED85CAF003A7310 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E88DB5F21ED85CAF003A7310 /* ViewController.m */; };
@@ -38,6 +40,10 @@
 		AF0BEB8E1F0DEA350086AB6B /* PGVignetteFilter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PGVignetteFilter.m; path = TiltShift/PGVignetteFilter.m; sourceTree = "<group>"; };
 		AF15B8781F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PGGaussianSelectiveBlurFilter.h; path = TiltShift/PGGaussianSelectiveBlurFilter.h; sourceTree = "<group>"; };
 		AF15B8791F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PGGaussianSelectiveBlurFilter.m; path = TiltShift/PGGaussianSelectiveBlurFilter.m; sourceTree = "<group>"; };
+		AFCBA53D1F0FA4BB00B8004D /* CAKeyframeAnimation+AHEasing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CAKeyframeAnimation+AHEasing.h"; sourceTree = "<group>"; };
+		AFCBA53E1F0FA4BB00B8004D /* CAKeyframeAnimation+AHEasing.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "CAKeyframeAnimation+AHEasing.m"; sourceTree = "<group>"; };
+		AFCBA53F1F0FA4BB00B8004D /* easing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = easing.c; sourceTree = "<group>"; };
+		AFCBA5401F0FA4BB00B8004D /* easing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = easing.h; sourceTree = "<group>"; };
 		E88DB5E81ED85CAF003A7310 /* GPUImageTiltShiftDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GPUImageTiltShiftDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E88DB5EC1ED85CAF003A7310 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		E88DB5EE1ED85CAF003A7310 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -100,6 +106,17 @@
 			name = TiltShift;
 			sourceTree = "<group>";
 		};
+		AFCBA53C1F0FA4BB00B8004D /* AHEasing */ = {
+			isa = PBXGroup;
+			children = (
+				AFCBA53D1F0FA4BB00B8004D /* CAKeyframeAnimation+AHEasing.h */,
+				AFCBA53E1F0FA4BB00B8004D /* CAKeyframeAnimation+AHEasing.m */,
+				AFCBA53F1F0FA4BB00B8004D /* easing.c */,
+				AFCBA5401F0FA4BB00B8004D /* easing.h */,
+			);
+			path = AHEasing;
+			sourceTree = "<group>";
+		};
 		E88DB5DF1ED85CAF003A7310 = {
 			isa = PBXGroup;
 			children = (
@@ -121,6 +138,7 @@
 		E88DB5EA1ED85CAF003A7310 /* GPUImageTiltShiftDemo */ = {
 			isa = PBXGroup;
 			children = (
+				AFCBA53C1F0FA4BB00B8004D /* AHEasing */,
 				AF0BEB801F0DD5150086AB6B /* StaticFramework */,
 				AF15A4251F0B922B00AD2250 /* TiltShift */,
 				E88DB5EE1ED85CAF003A7310 /* AppDelegate.h */,
@@ -276,9 +294,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFCBA5411F0FA4BB00B8004D /* CAKeyframeAnimation+AHEasing.m in Sources */,
 				E88DB5F31ED85CAF003A7310 /* ViewController.m in Sources */,
 				E88DB5F01ED85CAF003A7310 /* AppDelegate.m in Sources */,
 				AF0BEB8F1F0DEA350086AB6B /* PGVignetteFilter.m in Sources */,
+				AFCBA5421F0FA4BB00B8004D /* easing.c in Sources */,
 				AF15B87A1F0CDF9400D4A0CE /* PGGaussianSelectiveBlurFilter.m in Sources */,
 				E88DB5ED1ED85CAF003A7310 /* main.m in Sources */,
 			);

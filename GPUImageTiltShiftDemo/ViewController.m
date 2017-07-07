@@ -10,7 +10,7 @@
 #import "PGGaussianSelectiveBlurFilter.h"
 #import "PGVignetteFilter.h"
 #import <GPUImage/GPUImage.h>
-
+#include "easing.h"
 
 const CGFloat kInitScaleValue = 0.2;
 const CGFloat kVignetteStartOffset = 0.1;
@@ -391,7 +391,7 @@ const CGFloat kMinScale = 0.0;
   
     
     if (timeDiff/timerValue <= 1){
-        _vignetteFilter.vignetteAlpha = kVignetteAlphaValue * (1 - timeDiff/timerValue);
+        _vignetteFilter.vignetteAlpha = kVignetteAlphaValue * (1 - CubicEaseOut(timeDiff/timerValue));
         [_sourcePicture processImage];
     }else{
         [self stopVignetteFadeOutTimer];
