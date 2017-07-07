@@ -13,7 +13,8 @@
 
 
 const CGFloat kInitScaleValue = 0.2;
-const CGFloat kVignetteOffset = 0.2;
+const CGFloat kVignetteStartOffset = 0.1;
+const CGFloat kVignetteEndOffset = 0.15;
 const CGFloat kVignetteAlphaValue = 0.85;
 const CGFloat kMaxScale = 10.0;
 const CGFloat kMinScale = 0.0;
@@ -28,8 +29,6 @@ const CGFloat kMinScale = 0.0;
     NSMutableSet *_activeRecognizers;
 
     GPUImageView *primaryView;
-    
-    
 }
 
 @property (nonatomic , strong) GPUImagePicture *sourcePicture;
@@ -96,71 +95,39 @@ const CGFloat kMinScale = 0.0;
     _rotateGestureRecognizer = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(handleGesture:)];
     _rotateGestureRecognizer.delegate = self;
     
-
-    
     [self.view addGestureRecognizer:_panGestureRecognizer];
     [self.view addGestureRecognizer:_tapGestureRecognizer];
     
     [self.view addGestureRecognizer:_pinchGestureRecognizer];
     [self.view addGestureRecognizer:_rotateGestureRecognizer];
-    
 }
 
 
 - (void) initFilters:(GPUImageView*)gPUImageView;
 {
+
     _gaussianSelectiveBlurFilter = [[PGGaussianSelectiveBlurFilter alloc] init];
-    
-    CGSize inputSize = CGSizeMake(MIN(gPUImageView.sizeInPixels.height, gPUImageView.sizeInPixels.width), MIN(gPUImageView.sizeInPixels.height, gPUImageView.sizeInPixels.width));
-    
     _gaussianSelectiveBlurFilter.aspectRatio = 1;
     _gaussianSelectiveBlurFilter.blurRadiusInPixels = 4.5;
     _gaussianSelectiveBlurFilter.excludeCircleRadius = kInitScaleValue;
     _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(0.5, 0.5);
-    [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:inputSize];
-    [_sourcePicture addTarget:_gaussianSelectiveBlurFilter];
-
-    
+    [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
     
     _vignetteFilter = [[PGVignetteFilter alloc] init];
     _vignetteFilter.vignetteCenter = CGPointMake(0.5, 0.5);
     _vignetteFilter.vignetteColor = (GPUVector3){1.0,1.0,1.0};
     _vignetteFilter.vignetteAlpha = 0.0f;
-    _vignetteFilter.vignetteStart = 0.1;
-    _vignetteFilter.vignetteEnd = 0.35;
-    [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:inputSize];
+    _vignetteFilter.vignetteStart = kInitScaleValue - kVignetteStartOffset;
+    _vignetteFilter.vignetteEnd = kInitScaleValue + kVignetteEndOffset;
+    [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
 
 
-    [self addVignetteFilter];
-}
-
-- (void) addVignetteFilter
-{
-    [_gaussianSelectiveBlurFilter removeTarget:primaryView];
-    
+    [_sourcePicture addTarget:_gaussianSelectiveBlurFilter];
     [_gaussianSelectiveBlurFilter addTarget:_vignetteFilter];
     [_vignetteFilter addTarget:primaryView];
 }
 
-- (void) removeVignetteFilter
-{
-    [_vignetteFilter removeTarget:primaryView];
-    
-    [_gaussianSelectiveBlurFilter removeTarget:_vignetteFilter];
-    [_gaussianSelectiveBlurFilter addTarget:primaryView];
-}
 
-
-#pragma mark - Private method
-
-- (CGFloat) pointPairToBearingDegrees:(CGPoint)startingPoint secondPoint:(CGPoint) endingPoint
-{
-    CGPoint originPoint = CGPointMake(endingPoint.x - startingPoint.x, endingPoint.y - startingPoint.y); // get origin point to origin by subtracting end from start
-    float bearingRadians = atan2f(originPoint.y, originPoint.x); // get bearing in radians
-    float bearingDegrees = bearingRadians * (180.0 / M_PI); // convert to degrees
-    bearingDegrees = (bearingDegrees > 0.0 ? bearingDegrees : (360.0 + bearingDegrees)); // correct discontinuity
-    return bearingDegrees;
-}
 
 #pragma mark - Gesture Recognizer action
 
@@ -192,14 +159,11 @@ const CGFloat kMinScale = 0.0;
                 CGFloat currentScale = [[[recognizer view].layer valueForKeyPath:@"transform.scale"] floatValue];
                 
                 // Constants to adjust the max/min values of zoom
-
-                
                 CGFloat newScale = 1 -  (lastScale - minScale);
                 newScale = MIN(newScale, kMaxScale / currentScale);
                 newScale = MAX(newScale, kMinScale / currentScale);
                 
                 lastScale = newScale/kMaxScale;  // Store the previous scale factor for the next pinch gesture call
-
             }
             
             
@@ -224,7 +188,7 @@ const CGFloat kMinScale = 0.0;
         case UIGestureRecognizerStateChanged: {
             CGAffineTransform transform;
             for (UIGestureRecognizer *recognizer in _activeRecognizers){
-                //transform = [self applyRecognizer:recognizer toTransform:transform];
+
                 transform = [self applyRecognizer:recognizer];
                 
                 if ([recognizer respondsToSelector:@selector(rotation)]){
@@ -233,10 +197,10 @@ const CGFloat kMinScale = 0.0;
                     angle += lastRotation;
                     NSLog(@"handleGesture, angle : %f", angle);
                     
-                    _gaussianSelectiveBlurFilter.isRadial = NO;
+                    //_gaussianSelectiveBlurFilter.isRadial = NO;
                     _gaussianSelectiveBlurFilter.rotation = angle;
                     
-                    _vignetteFilter.isRadial = NO;
+                    //_vignetteFilter.isRadial = NO;
                     _vignetteFilter.rotation = angle;
                     
                     [_sourcePicture processImage];
@@ -261,8 +225,10 @@ const CGFloat kMinScale = 0.0;
                     NSLog(@"handleGesture, scale : %f", lastScale);
                     _gaussianSelectiveBlurFilter.excludeCircleRadius = lastScale;
                     
-                    _vignetteFilter.vignetteStart = lastScale;
-                    _vignetteFilter.vignetteEnd = lastScale + kVignetteOffset;
+                    CGFloat vignetteStart = (lastScale - kVignetteStartOffset) < 0 ? 0 : (lastScale - kVignetteStartOffset);
+                    CGFloat vignetteEnd = (lastScale + kVignetteEndOffset) > 1 ? 1 : (lastScale + kVignetteEndOffset) ;
+                    _vignetteFilter.vignetteStart = vignetteStart;
+                    _vignetteFilter.vignetteEnd = vignetteEnd;
                     
                     [_sourcePicture processImage];
                 }
@@ -402,9 +368,6 @@ const CGFloat kMinScale = 0.0;
         _isVignetteFadeOutTimerRunning = NO;
     }
 }
-
-
-
 
 - (void)releaseVignetteFadeOutTimer
 {
