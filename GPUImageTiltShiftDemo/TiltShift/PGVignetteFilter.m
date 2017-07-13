@@ -24,6 +24,7 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
  uniform highp float aspectRatio;
  uniform highp float rotation;
  uniform lowp int isRadial;
+ uniform lowp int isDebugging;
  
  void main()
  {
@@ -32,17 +33,62 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
      
      if ( isRadial == 1 ) {
          // for radial blur
-         lowp float d = distance(textureCoordinate, vec2(vignetteCenter.x, vignetteCenter.y));
-         lowp float percent = smoothstep(vignetteStart, vignetteEnd, d);
+         lowp float distanceToCenter = distance(textureCoordinate, vec2(vignetteCenter.x, vignetteCenter.y));
+         lowp float percent = smoothstep(vignetteStart, vignetteEnd, distanceToCenter);
          
-         gl_FragColor = vec4(mix(sourceImageColor.rgb, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+         
+         if ( isDebugging == 1 ) {
+             
+             lowp float green = 0.0;
+             lowp float circleBoarder = 0.005;
+
+             //Draw vignetteStart Circle
+             if ((vignetteStart < distanceToCenter) && (distanceToCenter < vignetteStart + circleBoarder)){
+                 green = 1.0;
+             }
+             lowp vec3 innerCircle = mix(sourceImageColor.rgb, vec3(0.0, green, 0.0), 0.2*vignetteAlpha);
+             
+             //Draw vignetteEnd Circle
+             if ((vignetteEnd < distanceToCenter) && (distanceToCenter < vignetteEnd + circleBoarder)){
+                 green = 1.0;
+             }
+             lowp vec3 outerCircle = mix(innerCircle, vec3(0.0, green, 0.0), 0.2*vignetteAlpha);
+             
+             gl_FragColor = vec4(mix(outerCircle, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+             
+         }else{
+             gl_FragColor = vec4(mix(sourceImageColor.rgb, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+         }
+         
+         
      }else{
          // for linear blur
          
-         lowp float d = abs((textureCoordinate.x - vignetteCenter.x)*aspectRatio*cos(rotation) + (textureCoordinate.y-vignetteCenter.y)*sin(rotation));
-         lowp float percent = smoothstep(vignetteStart, vignetteEnd, d);
+         lowp float distanceToCenter = abs((textureCoordinate.x - vignetteCenter.x)*aspectRatio*cos(rotation) + (textureCoordinate.y-vignetteCenter.y)*sin(rotation));
+         lowp float percent = smoothstep(vignetteStart, vignetteEnd, distanceToCenter);
          
-         gl_FragColor = vec4(mix(sourceImageColor.rgb, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+         if ( isDebugging == 1 ) {
+             
+             lowp float green = 0.0;
+             lowp float circleBoarder = 0.005;
+             
+             //Draw vignetteStart line
+             if ((vignetteStart < distanceToCenter) && (distanceToCenter < vignetteStart + circleBoarder)){
+                 green = 1.0;
+             }
+             lowp vec3 innerCircle = mix(sourceImageColor.rgb, vec3(0.0, green, 0.0), 0.2*vignetteAlpha);
+             
+             //Draw vignetteEnd line
+             if ((vignetteEnd < distanceToCenter) && (distanceToCenter < vignetteEnd + circleBoarder)){
+                 green = 1.0;
+             }
+             lowp vec3 outerCircle = mix(innerCircle, vec3(0.0, green, 0.0), 0.2*vignetteAlpha);
+             
+             gl_FragColor = vec4(mix(outerCircle, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+             
+         }else{
+             gl_FragColor = vec4(mix(sourceImageColor.rgb, vignetteColor, vignetteAlpha * percent), sourceImageColor.a);
+         }
          
      }
  }
@@ -95,6 +141,7 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
     isRadialUniform = [filterProgram uniformIndex:@"isRadial"];
     rotationUniform = [filterProgram uniformIndex:@"rotation"];
     aspectRatioUniform = [filterProgram uniformIndex:@"aspectRatio"];
+    isDebuggingUniform = [filterProgram uniformIndex:@"isDebugging"];
     
     self.vignetteCenter = (CGPoint){ 0.5f, 0.5f };
     self.vignetteColor = (GPUVector3){ 0.0f, 0.0f, 0.0f };
@@ -104,6 +151,7 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
     self.isRadial = YES;
     self.rotation = 0.0;
     self.aspectRatio = 1;
+    self.isDebugging = 0;
     
     return self;
 }
@@ -163,7 +211,12 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
 {
     _aspectRatio = newValue;
     [self setFloat:_aspectRatio forUniform:aspectRatioUniform program:filterProgram];
-    
+}
+
+- (void)setIsDebugging:(BOOL)isDebugging;
+{
+    _isDebugging = isDebugging;
+    [self setInteger:[NSNumber numberWithBool:_isDebugging].intValue forUniform:isDebuggingUniform program:filterProgram];
 }
 
 @end

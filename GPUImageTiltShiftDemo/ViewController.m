@@ -120,19 +120,21 @@ const CGFloat kMinVignetteEndOffset = 0.03;
 {
 
     _gaussianSelectiveBlurFilter = [[PGGaussianSelectiveBlurFilter alloc] init];
-    _gaussianSelectiveBlurFilter.aspectRatio = 1;
+    _gaussianSelectiveBlurFilter.aspectRatio = _sourcePicture.outputImageSize.width/_sourcePicture.outputImageSize.height;
     _gaussianSelectiveBlurFilter.blurRadiusInPixels = 4.5;
     _gaussianSelectiveBlurFilter.excludeCircleRadius = kInitScaleValue;
     _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(0.5, 0.5);
     [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
     
     _vignetteFilter = [[PGVignetteFilter alloc] init];
+    _vignetteFilter.aspectRatio = _sourcePicture.outputImageSize.width/_sourcePicture.outputImageSize.height;
     _vignetteFilter.vignetteCenter = CGPointMake(0.5, 0.5);
     _vignetteFilter.vignetteColor = (GPUVector3){1.0,1.0,1.0};
     _vignetteFilter.vignetteAlpha = 0.0f;
     _vignetteFilter.vignetteStart = kInitScaleValue - kVignetteStartOffset;
     _vignetteFilter.vignetteEnd = kInitScaleValue + kVignetteEndOffset;
     [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
+    _vignetteFilter.isDebugging = 1;
 
 
     [_sourcePicture addTarget:_gaussianSelectiveBlurFilter];
@@ -196,10 +198,10 @@ const CGFloat kMinVignetteEndOffset = 0.03;
                     angle += lastRotation;
                     NSLog(@"handleGesture, angle : %f", angle);
                     
-                    //_gaussianSelectiveBlurFilter.isRadial = NO;
+                    _gaussianSelectiveBlurFilter.isRadial = NO;
                     _gaussianSelectiveBlurFilter.rotation = angle;
                     
-                    //_vignetteFilter.isRadial = NO;
+                    _vignetteFilter.isRadial = NO;
                     _vignetteFilter.rotation = angle;
                     
                     [_sourcePicture processImage];

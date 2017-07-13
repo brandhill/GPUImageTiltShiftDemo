@@ -13,7 +13,8 @@
 @interface PGVignetteFilter : GPUImageFilter
 {
     GLint vignetteCenterUniform, vignetteColorUniform, vignetteAlphaUniform, vignetteStartUniform;
-    GLint vignetteEndUniform, isRadialUniform, rotationUniform, aspectRatioUniform;
+    GLint vignetteEndUniform, rotationUniform, aspectRatioUniform;
+    GLint isRadialUniform, isDebuggingUniform;
 }
 
 // the center for the vignette in tex coords (defaults to 0.5, 0.5)
@@ -32,6 +33,8 @@
 @property (nonatomic, readwrite) CGFloat vignetteEnd;
 
 @property (readwrite, nonatomic) BOOL isRadial;
+
+@property (readwrite, nonatomic) BOOL isDebugging;
 
 @property (readwrite, nonatomic) CGFloat rotation;
 
