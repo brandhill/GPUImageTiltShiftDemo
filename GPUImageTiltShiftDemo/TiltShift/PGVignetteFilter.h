@@ -40,4 +40,6 @@
 
 @property (readwrite, nonatomic) CGFloat aspectRatio;
 
+- (instancetype)initWithFilter:(PGVignetteFilter*)filter;
+
 @end

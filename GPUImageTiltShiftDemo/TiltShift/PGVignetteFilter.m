@@ -157,6 +157,23 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
     return self;
 }
 
+- (instancetype)initWithFilter:(PGVignetteFilter*)filter
+{
+    if (!(self = [self init]))
+    {
+        return nil;
+    }
+    self.vignetteCenter = filter.vignetteCenter;
+    self.vignetteColor = filter.vignetteColor;
+    self.vignetteAlpha = filter.vignetteAlpha;
+    self.vignetteStart = filter.vignetteStart;
+    self.vignetteEnd = filter.vignetteEnd;
+    self.isRadial = filter.isRadial;
+    self.rotation = filter.rotation;
+    self.aspectRatio = filter.aspectRatio;
+    return self;
+}
+
 #pragma mark -
 #pragma mark Accessors
 

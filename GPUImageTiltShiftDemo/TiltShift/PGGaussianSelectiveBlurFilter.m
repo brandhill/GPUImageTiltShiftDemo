@@ -152,6 +152,23 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
     return self;
 }
 
+- (instancetype)initWithBlurFilter:(PGGaussianSelectiveBlurFilter*)filter
+{
+    if (!(self = [self init]))
+    {
+        return nil;
+    }
+    self.excludeCirclePoint = filter.excludeCirclePoint;
+    self.excludeCircleRadius = filter.excludeCircleRadius;
+    self.rotation = filter.rotation;
+    self.isRadial = filter.isRadial;
+    self.aspectRatio = filter.aspectRatio;
+    self.blurRadiusInPixels = filter.blurRadiusInPixels;
+    self.excludeBlurSize = filter.excludeBlurSize;
+    
+    return self;
+}
+
 - (void)setInputSize:(CGSize)newSize atIndex:(NSInteger)textureIndex;
 {
     CGSize oldInputSize = inputTextureSize;

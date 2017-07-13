@@ -42,4 +42,6 @@
 
 @property (readwrite, nonatomic) BOOL isDebugging;
 
+- (instancetype)initWithBlurFilter:(PGGaussianSelectiveBlurFilter*)filter;
+
 @end
