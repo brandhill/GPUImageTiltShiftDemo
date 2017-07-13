@@ -125,6 +125,7 @@ const CGFloat kMinVignetteEndOffset = 0.03;
     _gaussianSelectiveBlurFilter.excludeCircleRadius = kInitScaleValue;
     _gaussianSelectiveBlurFilter.excludeCirclePoint = CGPointMake(0.5, 0.5);
     [_gaussianSelectiveBlurFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
+    _gaussianSelectiveBlurFilter.isDebugging = YES;
     
     _vignetteFilter = [[PGVignetteFilter alloc] init];
     _vignetteFilter.aspectRatio = _sourcePicture.outputImageSize.width/_sourcePicture.outputImageSize.height;
@@ -134,7 +135,7 @@ const CGFloat kMinVignetteEndOffset = 0.03;
     _vignetteFilter.vignetteStart = kInitScaleValue - kVignetteStartOffset;
     _vignetteFilter.vignetteEnd = kInitScaleValue + kVignetteEndOffset;
     [_vignetteFilter forceProcessingAtSizeRespectingAspectRatio:gPUImageView.sizeInPixels];
-    _vignetteFilter.isDebugging = 1;
+    _vignetteFilter.isDebugging = YES;
 
 
     [_sourcePicture addTarget:_gaussianSelectiveBlurFilter];

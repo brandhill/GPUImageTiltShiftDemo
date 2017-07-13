@@ -33,7 +33,8 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
      
      if ( isRadial == 1 ) {
          // for radial blur
-         lowp float distanceToCenter = distance(textureCoordinate, vec2(vignetteCenter.x, vignetteCenter.y));
+         highp vec2 textureCoordinateToUse = vec2(textureCoordinate.x * aspectRatio, (textureCoordinate.y ));
+         lowp float distanceToCenter = distance(textureCoordinateToUse, vec2(vignetteCenter.x * aspectRatio, vignetteCenter.y));
          lowp float percent = smoothstep(vignetteStart, vignetteEnd, distanceToCenter);
          
          
@@ -151,7 +152,7 @@ NSString *const kPGVignetteFragmentShaderString = SHADER_STRING
     self.isRadial = YES;
     self.rotation = 0.0;
     self.aspectRatio = 1;
-    self.isDebugging = 0;
+    self.isDebugging = NO;
     
     return self;
 }

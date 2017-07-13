@@ -24,6 +24,7 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
  uniform highp float aspectRatio;
  uniform highp float rotation;
  uniform lowp int isRadialBlur;
+ uniform lowp int isDebugging;
  
  void main()
  {
@@ -34,14 +35,51 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
      
      if ( isRadialBlur == 1 ) {
          // for radial blur
-         highp vec2 textureCoordinateToUse = vec2(textureCoordinate2.x, (textureCoordinate2.y  + 0.5 - 0.5 * aspectRatio));
-         distanceFromCenter = distance(excludeCirclePoint, textureCoordinateToUse);
+         highp vec2 textureCoordinateToUse = vec2(textureCoordinate2.x * aspectRatio, (textureCoordinate2.y ));
+         distanceFromCenter = distance(vec2(excludeCirclePoint.x * aspectRatio, excludeCirclePoint.y), textureCoordinateToUse);
+         
+         if(isDebugging == 1){
+             lowp float red = 0.0;
+             lowp float circleBoarder = 0.005;
+             
+             //Draw excludeCircle
+             if ((excludeCircleRadius < distanceFromCenter) && (distanceFromCenter < excludeCircleRadius + circleBoarder)){
+                 red = 1.0;
+             }
+             lowp vec4 innerCircle = mix(blurredImageColor, vec4(red, 0.0, 0.0, 0.0), 0.2);
+             
+             
+             gl_FragColor = mix(sharpImageColor, innerCircle, smoothstep(excludeCircleRadius - excludeBlurSize, excludeCircleRadius, distanceFromCenter));
+             
+         }else{
+             gl_FragColor = mix(sharpImageColor, blurredImageColor, smoothstep(excludeCircleRadius - excludeBlurSize, excludeCircleRadius, distanceFromCenter));
+         }
+         
+
      } else {
          // for linear blur
          distanceFromCenter = abs((textureCoordinate2.x - excludeCirclePoint.x)*aspectRatio*cos(rotation) + (textureCoordinate2.y-excludeCirclePoint.y)*sin(rotation));
+         
+         
+         if(isDebugging == 1){
+             
+             lowp float red = 0.0;
+             lowp float circleBoarder = 0.005;
+             
+             if ((excludeCircleRadius < distanceFromCenter) && (distanceFromCenter < excludeCircleRadius + circleBoarder)){
+                 red = 1.0;
+             }
+             
+             lowp vec4 innerCircle = mix(blurredImageColor, vec4(red, 0.0, 0.0, 0.0), 0.2);
+             
+             gl_FragColor = mix(sharpImageColor, innerCircle, smoothstep(excludeCircleRadius - excludeBlurSize, excludeCircleRadius, distanceFromCenter));
+         }else{
+             gl_FragColor = mix(sharpImageColor, blurredImageColor, smoothstep(excludeCircleRadius - excludeBlurSize, excludeCircleRadius, distanceFromCenter));
+         }
+
      }
      
-     gl_FragColor = mix(sharpImageColor, blurredImageColor, smoothstep(excludeCircleRadius - excludeBlurSize, excludeCircleRadius, distanceFromCenter));
+
  }
 );
 #else
@@ -109,6 +147,7 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
     self.excludeCirclePoint = CGPointMake(0.5f, 0.5f);
     self.excludeBlurSize = 30.0/320.0;
     self.isRadial = YES;
+    self.isDebugging = NO;
     
     return self;
 }
@@ -175,6 +214,12 @@ NSString *const kPGGaussianSelectiveBlurFragmentShaderString = SHADER_STRING
 {
     _isRadial = isRadial;
     [selectiveFocusFilter setInteger:[NSNumber numberWithBool:_isRadial].intValue forUniformName:@"isRadialBlur"];
+}
+
+- (void)setIsDebugging:(BOOL)isDebugging;
+{
+    _isDebugging = isDebugging;
+    [selectiveFocusFilter setInteger:[NSNumber numberWithBool:_isDebugging].intValue forUniformName:@"isDebugging"];
 }
 
 @end

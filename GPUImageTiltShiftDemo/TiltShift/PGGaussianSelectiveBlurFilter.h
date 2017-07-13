@@ -40,4 +40,6 @@
 
 @property (readwrite, nonatomic) BOOL isRadial;
 
+@property (readwrite, nonatomic) BOOL isDebugging;
+
 @end
